@@ -44,7 +44,7 @@ class InMemoryIdentityService(identities: Iterable<PartyAndCertificate> = emptyS
      */
     override val caCertStore: CertStore
     override val trustRootHolder = X509CertificateHolder(trustRoot.encoded)
-    private val trustAnchor: TrustAnchor = TrustAnchor(trustRoot, null)
+    override val trustAnchor: TrustAnchor = TrustAnchor(trustRoot, null)
     private val keyToParties = ConcurrentHashMap<PublicKey, PartyAndCertificate>()
     private val keyToIssuingParty = ConcurrentHashMap<PublicKey, PartyAndCertificate>()
     private val principalToParties = ConcurrentHashMap<X500Name, PartyAndCertificate>()

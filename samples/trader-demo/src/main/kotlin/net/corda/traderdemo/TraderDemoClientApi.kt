@@ -56,10 +56,10 @@ class TraderDemoClientApi(val rpc: CordaRPCOps) {
         val notaryNode = rpc.nodeIdentityFromParty(notaryLegalIdentity)
                 ?: throw IllegalStateException("Unable to locate notary node in network map cache")
         val amounts = calculateRandomlySizedAmounts(amount, 3, 10, Random())
-        val anonymous = false
+        val anonymous = true
         // issue random amounts of currency up to the requested amount, in parallel
         val resultFutures = amounts.map { pennies ->
-            rpc.startFlow(::CashIssueFlow, amount.copy(quantity = pennies), OpaqueBytes.of(1), buyer, notaryNode.notaryIdentity, anonymous).returnValue
+            rpc.startFlow(::CashIssueFlow, amount.copy(quantity = pennies), OpaqueBytes.of(1), buyer, notaryNode.notaryIdentity).returnValue
         }
 
         resultFutures.transpose().getOrThrow()
