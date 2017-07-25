@@ -85,7 +85,7 @@ class InMemoryIdentityService(identities: Iterable<PartyAndCertificate> = emptyS
     }
 
     override fun certificateFromKey(owningKey: PublicKey): PartyAndCertificate? = keyToParties[owningKey]
-    override fun certificateFromParty(party: Party): PartyAndCertificate? = principalToParties[party.name]
+    override fun certificateFromParty(party: Party): PartyAndCertificate = principalToParties[party.name] ?: throw IllegalArgumentException("Unknown identity ${party.name}")
 
     // We give the caller a copy of the data set to avoid any locking problems
     override fun getAllIdentities(): Iterable<PartyAndCertificate> = java.util.ArrayList(keyToParties.values)
