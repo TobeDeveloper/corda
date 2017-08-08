@@ -61,11 +61,13 @@ class InMemoryIdentityService(identities: Iterable<PartyAndCertificate> = emptyS
         }
     }
 
-    override fun registerIdentity(party: PartyAndCertificate) = verifyAndRegisterIdentity(party)
+    override fun registerIdentity(party: PartyAndCertificate) {
+        verifyAndRegisterIdentity(party)
+    }
 
     // TODO: Check the certificate validation logic
     @Throws(CertificateExpiredException::class, CertificateNotYetValidException::class, InvalidAlgorithmParameterException::class)
-    override fun verifyAndRegisterIdentity(identity: PartyAndCertificate) {
+    override fun verifyAndRegisterIdentity(identity: PartyAndCertificate): PartyAndCertificate? {
         require(identity.certPath.certificates.size >= 2) { "Certificate path must at least include subject and issuing certificates" }
         // Validate the chain first, before we do anything clever with it
         identity.verify(trustAnchor)
@@ -82,6 +84,7 @@ class InMemoryIdentityService(identities: Iterable<PartyAndCertificate> = emptyS
         }
         // Always keep the first party we registered, as that's the well known identity
         principalToParties.computeIfAbsent(identity.name) { identity }
+        return issuer
     }
 
     override fun certificateFromKey(owningKey: PublicKey): PartyAndCertificate? = keyToParties[owningKey]

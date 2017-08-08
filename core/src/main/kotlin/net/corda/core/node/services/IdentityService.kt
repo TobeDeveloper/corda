@@ -32,11 +32,12 @@ interface IdentityService {
     /**
      * Verify and then store an identity.
      *
-     * @param identity a party representing a legal entity and the certificate path linking them to the network trust root.
+     * @param identity a party and the certificate path linking them to the network trust root.
+     * @return the issuing entity, if known.
      * @throws IllegalArgumentException if the certificate path is invalid.
      */
     @Throws(CertificateExpiredException::class, CertificateNotYetValidException::class, InvalidAlgorithmParameterException::class)
-    fun verifyAndRegisterIdentity(identity: PartyAndCertificate)
+    fun verifyAndRegisterIdentity(identity: PartyAndCertificate): PartyAndCertificate?
 
     /**
      * Asserts that an anonymous party maps to the given full party, by looking up the certificate chain associated with
