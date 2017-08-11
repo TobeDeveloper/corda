@@ -40,6 +40,9 @@ UNRELEASED
   If you specifically need well known identities, use the network map, which is the authoritative source of current well
   known identities.
 
+* Remove `IssuerFlow` as it allowed nodes to request arbitrary amounts of cash to be issued from any remote node. Use
+  `CashIssueFlow` instead.
+
 Milestone 14
 ------------
 
