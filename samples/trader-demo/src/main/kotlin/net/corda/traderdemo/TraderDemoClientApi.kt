@@ -17,6 +17,7 @@ import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
 import net.corda.core.utilities.loggerFor
 import net.corda.flows.CashIssueFlow
+import net.corda.flows.CashPaymentFlow
 import net.corda.node.services.vault.VaultSchemaV1
 import net.corda.testing.DUMMY_NOTARY
 import net.corda.testing.contracts.calculateRandomlySizedAmounts
@@ -57,10 +58,11 @@ class TraderDemoClientApi(val rpc: CordaRPCOps) {
                 ?: throw IllegalStateException("Unable to locate notary node in network map cache")
         val amounts = calculateRandomlySizedAmounts(amount, 3, 10, Random())
         val anonymous = false
-        // issue random amounts of currency up to the requested amount, in parallel
+        rpc.startFlow(::CashIssueFlow, amount, rpc.nodeIdentity().legalIdentity,
+                OpaqueBytes.of(1), notaryNode.notaryIdentity).returnValue.getOrThrow()
+        // pay random amounts of currency up to the requested amount, in parallel
         val resultFutures = amounts.map { pennies ->
-            rpc.startFlow(::CashIssueFlow, amount.copy(quantity = pennies), buyer, rpc.nodeIdentity().legalIdentity,
-                    OpaqueBytes.of(1), notaryNode.notaryIdentity, anonymous).returnValue
+            rpc.startFlow(::CashPaymentFlow, amount.copy(quantity = pennies), buyer, anonymous).returnValue
         }
 
         resultFutures.transpose().getOrThrow()

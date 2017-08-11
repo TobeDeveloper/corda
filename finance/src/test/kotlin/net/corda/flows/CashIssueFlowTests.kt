@@ -44,10 +44,8 @@ class CashIssueFlowTests {
         val ref = OpaqueBytes.of(0x01)
         val future = bankOfCordaNode.services.startFlow(CashIssueFlow(expected,
                 bankOfCorda,
-                bankOfCorda,
                 ref,
-                notary,
-                anonymous = true)).resultFuture
+                notary)).resultFuture
         mockNet.runNetwork()
         val issueTx = future.getOrThrow().stx
         val output = issueTx.tx.outputsOfType<Cash.State>().single()
@@ -60,10 +58,8 @@ class CashIssueFlowTests {
         val ref = OpaqueBytes.of(0x01)
         val future = bankOfCordaNode.services.startFlow(CashIssueFlow(expected,
                 bankOfCorda,
-                bankOfCorda,
                 ref,
-                notary,
-                anonymous = true)).resultFuture
+                notary)).resultFuture
         mockNet.runNetwork()
         assertFailsWith<IllegalArgumentException> {
             future.getOrThrow()

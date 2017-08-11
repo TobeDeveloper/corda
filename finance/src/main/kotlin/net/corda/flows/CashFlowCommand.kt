@@ -22,7 +22,10 @@ sealed class CashFlowCommand {
                          val recipient: Party,
                          val notary: Party,
                          val anonymous: Boolean) : CashFlowCommand() {
-        override fun startFlow(proxy: CordaRPCOps) = proxy.startFlow(::CashIssueFlow, amount, recipient, proxy.nodeIdentity().legalIdentity, issueRef, notary, anonymous)
+        override fun startFlow(proxy: CordaRPCOps): FlowHandle<AbstractCashFlow.Result> {
+            proxy.startFlow(::CashIssueFlow, amount, proxy.nodeIdentity().legalIdentity, issueRef, notary)
+            return proxy.startFlow(::CashPaymentFlow, amount, recipient, anonymous)
+        }
     }
 
     /**

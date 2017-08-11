@@ -136,7 +136,7 @@ class DistributedServiceTests : DriverBasedTest() {
     private fun issueCash(amount: Amount<Currency>) {
         val issueHandle = aliceProxy.startFlow(
                 ::CashIssueFlow,
-                amount, OpaqueBytes.of(0), alice.nodeInfo.legalIdentity, raftNotaryIdentity)
+                amount, alice.nodeInfo.legalIdentity, OpaqueBytes.of(0), raftNotaryIdentity)
         issueHandle.returnValue.getOrThrow()
     }
 
