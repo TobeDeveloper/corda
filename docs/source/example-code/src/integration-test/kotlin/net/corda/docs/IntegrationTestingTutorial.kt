@@ -63,15 +63,24 @@ class IntegrationTestingTutorial {
 
             // START 4
             val issueRef = OpaqueBytes.of(0)
-            val futures = Stack<CordaFuture<*>>()
+            val futures = mutableListOf<CordaFuture<*>>()
             (1..10).map { i ->
                 thread {
-                    futures.push(aliceProxy.startFlow(::CashIssueFlow,
+                    futures.add(aliceProxy.startFlow(::CashIssueFlow,
                             i.DOLLARS,
-                            bob.nodeInfo.legalIdentity,
                             alice.nodeInfo.legalIdentity,
                             issueRef,
-                            notary.nodeInfo.notaryIdentity,
+                            notary.nodeInfo.notaryIdentity
+                    ).returnValue)
+                }
+            }.forEach(Thread::join) // Ensure the stack of futures is populated.
+            futures.forEach { it.getOrThrow() }
+            futures.clear()
+            (1..10).map { i ->
+                thread {
+                    futures.add(aliceProxy.startFlow(::CashPaymentFlow,
+                            i.DOLLARS,
+                            bob.nodeInfo.legalIdentity,
                             true
                     ).returnValue)
                 }

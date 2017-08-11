@@ -9,6 +9,7 @@ import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.utilities.getOrThrow
 import net.corda.flows.CashIssueFlow
+import net.corda.flows.CashPaymentFlow
 import net.corda.node.services.startFlowPermission
 import net.corda.node.services.transactions.SimpleNotaryService
 import net.corda.nodeapi.User
@@ -47,10 +48,13 @@ class BankOfCordaRPCClientTest {
             bocProxy.startFlow(
                     ::CashIssueFlow,
                     1000.DOLLARS,
-                    nodeBigCorporation.nodeInfo.legalIdentity,
                     nodeBankOfCorda.nodeInfo.legalIdentity,
                     BIG_CORP_PARTY_REF,
-                    nodeBankOfCorda.nodeInfo.notaryIdentity,
+                    nodeBankOfCorda.nodeInfo.notaryIdentity).returnValue.getOrThrow()
+            bocProxy.startFlow(
+                    ::CashPaymentFlow,
+                    1000.DOLLARS,
+                    nodeBigCorporation.nodeInfo.legalIdentity,
                     anonymous).returnValue.getOrThrow()
 
             // Check Bank of Corda Vault Updates

@@ -10,6 +10,7 @@ import net.corda.core.utilities.NetworkHostAndPort
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
 import net.corda.flows.CashIssueFlow
+import net.corda.flows.CashPaymentFlow
 import net.corda.testing.http.HttpApi
 
 /**
@@ -28,6 +29,8 @@ class BankOfCordaClientApi(val hostAndPort: NetworkHostAndPort) {
 
     /**
      * RPC API
+     *
+     * @return a pair of the issuing and payment transactions.
      */
     fun requestRPCIssue(params: IssueRequestParams): SignedTransaction {
         val client = CordaRPCClient(hostAndPort)
@@ -48,7 +51,9 @@ class BankOfCordaClientApi(val hostAndPort: NetworkHostAndPort) {
             val amount = Amount(params.amount, currency(params.currency))
             val issuerBankPartyRef = OpaqueBytes.of(params.issuerBankPartyRef.toByte())
 
-            return rpc.startFlow(::CashIssueFlow, amount, issueToParty, issuerBankParty, issuerBankPartyRef, notaryNode.notaryIdentity, params.anonymous)
+            rpc.startFlow(::CashIssueFlow, amount, issuerBankParty, issuerBankPartyRef, notaryNode.notaryIdentity)
+                    .returnValue.getOrThrow().stx
+            return rpc.startFlow(::CashPaymentFlow, amount, issueToParty, params.anonymous)
                     .returnValue.getOrThrow().stx
         }
     }
