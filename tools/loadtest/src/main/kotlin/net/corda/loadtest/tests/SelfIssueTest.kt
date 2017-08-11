@@ -8,8 +8,8 @@ import net.corda.contracts.asset.Cash
 import net.corda.core.contracts.USD
 import net.corda.core.flows.FlowException
 import net.corda.core.identity.AbstractParty
-import net.corda.core.utilities.getOrThrow
 import net.corda.core.messaging.vaultQueryBy
+import net.corda.core.utilities.getOrThrow
 import net.corda.flows.CashFlowCommand
 import net.corda.loadtest.LoadTest
 import net.corda.loadtest.NodeConnection
@@ -38,7 +38,7 @@ val selfIssueTest = LoadTest<SelfIssueCommand, SelfIssueState>(
 
         generate = { _, parallelism ->
             val generateIssue = Generator.pickOne(simpleNodes).flatMap { node ->
-                generateIssue(1000, USD, notary.info.notaryIdentity, listOf(node.info.legalIdentity), anonymous = true).map {
+                generateIssue(1000, USD, notary.info.notaryIdentity, listOf(node.info.legalIdentity)).map {
                     SelfIssueCommand(it, node)
                 }
             }

@@ -5,12 +5,11 @@ import net.corda.client.rpc.CordaRPCClient
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.currency
 import net.corda.core.messaging.startFlow
-import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.NetworkHostAndPort
+import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
 import net.corda.flows.IssuerFlow.IssuanceRequester
-import net.corda.testing.DUMMY_NOTARY
 import net.corda.testing.http.HttpApi
 
 /**
@@ -50,7 +49,7 @@ class BankOfCordaClientApi(val hostAndPort: NetworkHostAndPort) {
             val issuerToPartyRef = OpaqueBytes.of(params.issueToPartyRefAsString.toByte())
 
             return rpc.startFlow(::IssuanceRequester, amount, issueToParty, issuerToPartyRef, issuerBankParty, notaryNode.notaryIdentity, params.anonymous)
-                    .returnValue.getOrThrow().stx
+                    .returnValue.getOrThrow().transaction
         }
     }
 }

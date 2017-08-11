@@ -22,12 +22,12 @@ import net.corda.core.contracts.sumOrNull
 import net.corda.core.contracts.withoutIssuer
 import net.corda.core.flows.FlowException
 import net.corda.core.identity.Party
-import net.corda.core.messaging.FlowHandle
+import net.corda.core.internal.concurrent.map
 import net.corda.core.messaging.startFlow
 import net.corda.core.node.NodeInfo
 import net.corda.core.transactions.SignedTransaction
-import net.corda.core.utilities.getOrThrow
 import net.corda.core.utilities.OpaqueBytes
+import net.corda.core.utilities.getOrThrow
 import net.corda.explorer.formatters.PartyNameFormatter
 import net.corda.explorer.model.CashTransaction
 import net.corda.explorer.model.IssuerModel
@@ -35,13 +35,13 @@ import net.corda.explorer.model.ReportingCurrencyModel
 import net.corda.explorer.views.bigDecimalFormatter
 import net.corda.explorer.views.byteFormatter
 import net.corda.explorer.views.stringConverter
-import net.corda.flows.AbstractCashFlow
 import net.corda.flows.CashFlowCommand
 import net.corda.flows.IssuerFlow.IssuanceRequester
 import org.controlsfx.dialog.ExceptionDialog
 import tornadofx.*
 import java.math.BigDecimal
 import java.util.*
+import java.util.concurrent.Future
 
 class NewTransaction : Fragment() {
     override val root by fxml<DialogPane>()
@@ -93,25 +93,24 @@ class NewTransaction : Fragment() {
                 initOwner(window)
                 show()
             }
-            val handle: FlowHandle<AbstractCashFlow.Result> = if (command is CashFlowCommand.IssueCash) {
+            val handle: Future<SignedTransaction> = if (command is CashFlowCommand.IssueCash) {
                 rpcProxy.value!!.startFlow(::IssuanceRequester,
                         command.amount,
                         command.recipient,
                         command.issueRef,
                         myIdentity.value!!.legalIdentity,
                         command.notary,
-                        command.anonymous)
+                        false).returnValue.map { it.transaction }
             } else {
-                command.startFlow(rpcProxy.value!!)
+                command.startFlow(rpcProxy.value!!).returnValue
             }
             runAsync {
                 try {
-                    handle.returnValue.getOrThrow()
+                    handle.getOrThrow()
                 } finally {
                     dialog.dialogPane.isDisable = false
                 }
             }.ui {
-                val stx: SignedTransaction = it.stx
                 val type = when (command) {
                     is CashFlowCommand.IssueCash -> "Cash Issued"
                     is CashFlowCommand.ExitCash -> "Cash Exited"
@@ -125,7 +124,7 @@ class NewTransaction : Fragment() {
                     row { label(type) { font = Font.font(font.family, FontWeight.EXTRA_BOLD, font.size + 2) } }
                     row {
                         label("Transaction ID :") { GridPane.setValignment(this, VPos.TOP) }
-                        label { text = Splitter.fixedLength(16).split("${stx.id}").joinToString("\n") }
+                        label { text = Splitter.fixedLength(16).split("${it.id}").joinToString("\n") }
                     }
                 }
                 dialog.dialogPane.scene.window.sizeToScene()
@@ -150,17 +149,17 @@ class NewTransaction : Fragment() {
         initOwner(window)
         setResultConverter {
             // TODO: Enable confidential identities
-            val anonymous = false
             val defaultRef = OpaqueBytes.of(1)
             val issueRef = if (issueRef.value != null) OpaqueBytes.of(issueRef.value) else defaultRef
             when (it) {
-                executeButton -> when (transactionTypeCB.value) {
-                    CashTransaction.Issue -> {
-                        CashFlowCommand.IssueCash(Amount.fromDecimal(amount.value, currencyChoiceBox.value), issueRef, partyBChoiceBox.value.legalIdentity, notaries.first().notaryIdentity, anonymous)
+                executeButton -> {
+                    val fromDecimal = Amount.fromDecimal(amount.value, currencyChoiceBox.value)
+                    when (transactionTypeCB.value) {
+                        CashTransaction.Issue -> CashFlowCommand.IssueCash(fromDecimal, issueRef, partyBChoiceBox.value.legalIdentity, notaries.first().notaryIdentity)
+                        CashTransaction.Pay -> CashFlowCommand.PayCash(fromDecimal, partyBChoiceBox.value.legalIdentity)
+                        CashTransaction.Exit -> CashFlowCommand.ExitCash(fromDecimal, issueRef)
+                        else -> null
                     }
-                    CashTransaction.Pay -> CashFlowCommand.PayCash(Amount.fromDecimal(amount.value, currencyChoiceBox.value), partyBChoiceBox.value.legalIdentity, anonymous = anonymous)
-                    CashTransaction.Exit -> CashFlowCommand.ExitCash(Amount.fromDecimal(amount.value, currencyChoiceBox.value), issueRef)
-                    else -> null
                 }
                 else -> null
             }
