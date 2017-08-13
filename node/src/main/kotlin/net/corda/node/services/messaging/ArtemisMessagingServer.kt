@@ -347,7 +347,7 @@ class ArtemisMessagingServer(override val config: NodeConfiguration,
         fun gatherAddresses(node: NodeInfo): Sequence<ArtemisPeerAddress> {
             val peerAddress = getArtemisPeerAddress(node)
             val addresses = mutableListOf(peerAddress)
-            node.advertisedServices.mapTo(addresses) { NodeAddress.asService(it.identity.owningKey, peerAddress.hostAndPort) }
+            node.advertisedServices.mapTo(addresses) { NodeAddress.asService(it.party.owningKey, peerAddress.hostAndPort) }
             return addresses.asSequence()
         }
 

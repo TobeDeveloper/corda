@@ -13,7 +13,7 @@ import net.corda.core.utilities.NonEmptySet
  * The identity can be used in flows and is distinct from the Node's legalIdentity
  */
 @CordaSerializable
-data class ServiceEntry(val info: ServiceInfo, val identity: PartyAndCertificate)
+data class ServiceEntry(val info: ServiceInfo, val party: Party)
 
 /**
  * Info about a network node that acts on behalf of some form of contract party.
@@ -22,18 +22,19 @@ data class ServiceEntry(val info: ServiceInfo, val identity: PartyAndCertificate
 @CordaSerializable
 data class NodeInfo(val addresses: List<NetworkHostAndPort>,
                     val legalIdentityAndCert: PartyAndCertificate, //TODO This field will be removed in future PR which gets rid of services.
-                    val legalIdentitiesAndCerts: NonEmptySet<PartyAndCertificate>,
+                    val legalIdentities: NonEmptySet<Party>,
                     val platformVersion: Int,
-                    var advertisedServices: List<ServiceEntry> = emptyList(),
+                    val advertisedServices: List<ServiceEntry> = emptyList(),
                     val worldMapLocation: WorldMapLocation? = null) {
     init {
-        require(advertisedServices.none { it.identity == legalIdentityAndCert }) { "Service identities must be different from node legal identity" }
+        require(advertisedServices.none { it.party == legalIdentityAndCert.party }) {
+            "Service identities must be different from node legal identity"
+        }
     }
-    val legalIdentity: Party
-        get() = legalIdentityAndCert.party
-    val notaryIdentity: Party
-        get() = advertisedServices.single { it.info.type.isNotary() }.identity.party
+
+    val legalIdentity: Party get() = legalIdentityAndCert.party
+    val notaryIdentity: Party get() = advertisedServices.single { it.info.type.isNotary() }.party
     fun serviceIdentities(type: ServiceType): List<Party> {
-        return advertisedServices.filter { it.info.type.isSubTypeOf(type) }.map { it.identity.party }
+        return advertisedServices.mapNotNull { if (it.info.type.isSubTypeOf(type)) it.party else null }
     }
 }

@@ -88,6 +88,9 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit.SECONDS
 import java.util.stream.Collectors.toList
 import kotlin.collections.ArrayList
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.set
 import kotlin.reflect.KClass
 import net.corda.core.crypto.generateKeyPair as cryptoGenerateKeyPair
 
@@ -492,7 +495,7 @@ abstract class AbstractNode(open val configuration: NodeConfiguration,
     private fun makeInfo(): NodeInfo {
         val advertisedServiceEntries = makeServiceEntries()
         val legalIdentity = obtainLegalIdentity()
-        val allIdentitiesSet = (advertisedServiceEntries.map { it.identity } + legalIdentity).toNonEmptySet()
+        val allIdentitiesSet = (advertisedServiceEntries.map { it.party } + legalIdentity.party).toNonEmptySet()
         val addresses = myAddresses() // TODO There is no support for multiple IP addresses yet.
         return NodeInfo(addresses, legalIdentity, allIdentitiesSet, platformVersion, advertisedServiceEntries, findMyLocation())
     }
@@ -506,7 +509,7 @@ abstract class AbstractNode(open val configuration: NodeConfiguration,
             val serviceId = it.type.id
             val serviceName = it.name ?: X500Name("${configuration.myLegalName},OU=$serviceId")
             val identity = obtainKeyPair(serviceId, serviceName).first
-            ServiceEntry(it, identity)
+            ServiceEntry(it, identity.party)
         }
     }
 
