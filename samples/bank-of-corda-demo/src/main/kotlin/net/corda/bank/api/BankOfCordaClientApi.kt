@@ -41,8 +41,6 @@ class BankOfCordaClientApi(val hostAndPort: NetworkHostAndPort) {
             // Resolve parties via RPC
             val issueToParty = rpc.partyFromX500Name(params.issueToPartyName)
                     ?: throw Exception("Unable to locate ${params.issueToPartyName} in Network Map Service")
-            val issuerBankParty = rpc.partyFromX500Name(params.issuerBankName)
-                    ?: throw Exception("Unable to locate ${params.issuerBankName} in Network Map Service")
             val notaryLegalIdentity = rpc.partyFromX500Name(params.notaryName)
                     ?: throw IllegalStateException("Unable to locate ${params.notaryName} in Network Map Service")
             val notaryNode = rpc.nodeIdentityFromParty(notaryLegalIdentity)
@@ -51,7 +49,7 @@ class BankOfCordaClientApi(val hostAndPort: NetworkHostAndPort) {
             val amount = Amount(params.amount, currency(params.currency))
             val issuerBankPartyRef = OpaqueBytes.of(params.issuerBankPartyRef.toByte())
 
-            rpc.startFlow(::CashIssueFlow, amount, issuerBankParty, issuerBankPartyRef, notaryNode.notaryIdentity)
+            rpc.startFlow(::CashIssueFlow, amount, issuerBankPartyRef, notaryNode.notaryIdentity)
                     .returnValue.getOrThrow().stx
             return rpc.startFlow(::CashPaymentFlow, amount, issueToParty, params.anonymous)
                     .returnValue.getOrThrow().stx

@@ -66,7 +66,6 @@ class IntegrationTestingTutorial {
             (1..10).map { i ->
                 aliceProxy.startFlow(::CashIssueFlow,
                         i.DOLLARS,
-                        alice.nodeInfo.legalIdentity,
                         issueRef,
                         notary.nodeInfo.notaryIdentity
                 ).returnValue

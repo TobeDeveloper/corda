@@ -97,7 +97,6 @@ class NewTransaction : Fragment() {
             val handle: FlowHandle<AbstractCashFlow.Result> = if (command is CashFlowCommand.IssueCash) {
                 rpcProxy.value!!.startFlow(::CashIssueFlow,
                         command.amount,
-                        myIdentity.value!!.legalIdentity,
                         command.issueRef,
                         command.notary)
                 rpcProxy.value!!.startFlow(::CashPaymentFlow,

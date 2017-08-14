@@ -48,7 +48,6 @@ class BankOfCordaRPCClientTest {
             bocProxy.startFlow(
                     ::CashIssueFlow,
                     1000.DOLLARS,
-                    nodeBankOfCorda.nodeInfo.legalIdentity,
                     BIG_CORP_PARTY_REF,
                     nodeBankOfCorda.nodeInfo.notaryIdentity).returnValue.getOrThrow()
             bocProxy.startFlow(
