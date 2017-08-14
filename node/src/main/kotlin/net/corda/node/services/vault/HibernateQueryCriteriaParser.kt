@@ -70,8 +70,7 @@ class HibernateQueryCriteriaParser(val contractType: Class<out ContractState>,
 
         // notary names
         criteria.notaryName?.let {
-            val notaryNames = (criteria.notaryName as List<X500Name>).map { it.toString() }
-            predicateSet.add(criteriaBuilder.and(vaultStates.get<String>("notaryName").`in`(notaryNames)))
+            predicateSet.add(criteriaBuilder.and(vaultStates.get<AbstractParty>("notaryName").`in`(criteria.notaryName)))
         }
 
         // state references
@@ -244,9 +243,8 @@ class HibernateQueryCriteriaParser(val contractType: Class<out ContractState>,
 
         // owner
         criteria.owner?.let {
-            val ownerKeys = criteria.owner as List<AbstractParty>
-            val owners = ownerKeys.map { it.nameOrNull().toString() }
-            predicateSet.add(criteriaBuilder.and(vaultFungibleStates.get<String>("owner").`in`(owners)))
+            val owners = criteria.owner as List<AbstractParty>
+            predicateSet.add(criteriaBuilder.and(vaultFungibleStates.get<AbstractParty>("owner").`in`(owners)))
         }
 
         // quantity
@@ -257,8 +255,7 @@ class HibernateQueryCriteriaParser(val contractType: Class<out ContractState>,
         // issuer party
         criteria.issuerPartyName?.let {
             val issuerParties = criteria.issuerPartyName as List<AbstractParty>
-            val issuerPartyNames = issuerParties.map { it.nameOrNull().toString() }
-            predicateSet.add(criteriaBuilder.and(vaultFungibleStates.get<String>("issuer").`in`(issuerPartyNames)))
+            predicateSet.add(criteriaBuilder.and(vaultFungibleStates.get<AbstractParty>("issuer").`in`(issuerParties)))
         }
 
         // issuer reference
@@ -270,9 +267,8 @@ class HibernateQueryCriteriaParser(val contractType: Class<out ContractState>,
         // participants
         criteria.participants?.let {
             val participants = criteria.participants as List<AbstractParty>
-            val participantKeys = participants.map { it.nameOrNull().toString() }
-            val joinLinearStateToParty = vaultFungibleStates.joinSet<VaultSchemaV1.VaultLinearStates, String>("participants")
-            predicateSet.add(criteriaBuilder.and(joinLinearStateToParty.`in`(participantKeys)))
+            val joinLinearStateToParty = vaultFungibleStates.joinSet<VaultSchemaV1.VaultLinearStates, AbstractParty>("participants")
+            predicateSet.add(criteriaBuilder.and(joinLinearStateToParty.`in`(participants)))
             criteriaQuery.distinct(true)
         }
         return predicateSet
@@ -312,9 +308,8 @@ class HibernateQueryCriteriaParser(val contractType: Class<out ContractState>,
         // deal participants
         criteria.participants?.let {
             val participants = criteria.participants as List<AbstractParty>
-            val participantKeys = participants.map { it.nameOrNull().toString() }
-            val joinLinearStateToParty = vaultLinearStates.joinSet<VaultSchemaV1.VaultLinearStates, String>("participants")
-            predicateSet.add(criteriaBuilder.and(joinLinearStateToParty.`in`(participantKeys)))
+            val joinLinearStateToParty = vaultLinearStates.joinSet<VaultSchemaV1.VaultLinearStates, AbstractParty>("participants")
+            predicateSet.add(criteriaBuilder.and(joinLinearStateToParty.`in`(participants)))
             criteriaQuery.distinct(true)
         }
         return predicateSet
