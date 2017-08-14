@@ -25,7 +25,6 @@ import net.corda.core.serialization.SingletonSerializeAsToken
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.NetworkHostAndPort
 import net.corda.core.utilities.debug
-import net.corda.core.utilities.toNonEmptySet
 import net.corda.flows.CashExitFlow
 import net.corda.flows.CashIssueFlow
 import net.corda.flows.CashPaymentFlow
@@ -88,6 +87,9 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit.SECONDS
 import java.util.stream.Collectors.toList
 import kotlin.collections.ArrayList
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.set
 import kotlin.reflect.KClass
 import net.corda.core.crypto.generateKeyPair as cryptoGenerateKeyPair
 
@@ -492,9 +494,8 @@ abstract class AbstractNode(open val configuration: NodeConfiguration,
     private fun makeInfo(): NodeInfo {
         val advertisedServiceEntries = makeServiceEntries()
         val legalIdentity = obtainLegalIdentity()
-        val allIdentitiesSet = (advertisedServiceEntries.map { it.identity } + legalIdentity).toNonEmptySet()
         val addresses = myAddresses() // TODO There is no support for multiple IP addresses yet.
-        return NodeInfo(addresses, legalIdentity, allIdentitiesSet, platformVersion, advertisedServiceEntries, findMyLocation())
+        return NodeInfo(addresses, legalIdentity, platformVersion, advertisedServiceEntries, findMyLocation())
     }
 
     /**
@@ -505,8 +506,8 @@ abstract class AbstractNode(open val configuration: NodeConfiguration,
         return advertisedServices.map {
             val serviceId = it.type.id
             val serviceName = it.name ?: X500Name("${configuration.myLegalName},OU=$serviceId")
-            val identity = obtainKeyPair(serviceId, serviceName).first
-            ServiceEntry(it, identity)
+            val party = obtainServiceParty(serviceId, serviceName)
+            ServiceEntry(it, party)
         }
     }
 
@@ -616,8 +617,8 @@ abstract class AbstractNode(open val configuration: NodeConfiguration,
         val instant = platformClock.instant()
         val expires = instant + NetworkMapService.DEFAULT_EXPIRATION_PERIOD
         val reg = NodeRegistration(info, instant.toEpochMilli(), ADD, expires)
-        val legalIdentityKey = obtainLegalIdentityKey()
-        val request = RegistrationRequest(reg.toWire(services.keyManagementService, legalIdentityKey.public), network.myAddress)
+        val legalIdentityKey = legalIdentityAndKeyPair.second.public
+        val request = RegistrationRequest(reg.toWire(services.keyManagementService, legalIdentityKey), network.myAddress)
         return network.sendRequest(NetworkMapService.REGISTER_TOPIC, request, networkMapAddress)
     }
 
@@ -687,11 +688,13 @@ abstract class AbstractNode(open val configuration: NodeConfiguration,
 
     protected abstract fun startMessagingService(rpcOps: RPCOps)
 
-    protected fun obtainLegalIdentity(): PartyAndCertificate = identityKeyPair.first
-    protected fun obtainLegalIdentityKey(): KeyPair = identityKeyPair.second
-    private val identityKeyPair by lazy { obtainKeyPair("identity", configuration.myLegalName) }
+    protected fun obtainLegalIdentity(): PartyAndCertificate = legalIdentityAndKeyPair.first
+    private val legalIdentityAndKeyPair by lazy { obtainLegalIdentityAndKeyPair() }
 
-    private fun obtainKeyPair(serviceId: String, serviceName: X500Name): Pair<PartyAndCertificate, KeyPair> {
+    private fun obtainLegalIdentityAndKeyPair(): Pair<PartyAndCertificate, KeyPair> {
+        val myLegalName = configuration.myLegalName
+        val privateKeyAlias = "identity-private-key"
+
         // Load the private identity key, creating it if necessary. The identity key is a long term well known key that
         // is distributed to other peers and we use it (or a key signed by it) when we need to do something
         // "permissioned". The identity file is what gets distributed and contains the node's legal name along with
@@ -699,6 +702,25 @@ abstract class AbstractNode(open val configuration: NodeConfiguration,
         // the legal name is actually validated in some way.
 
         // TODO: Integrate with Key management service?
+        val keyStore = KeyStoreWrapper(configuration.nodeKeystore, configuration.keyStorePassword)
+        if (!keyStore.containsAlias(privateKeyAlias)) {
+            log.info("$privateKeyAlias not found in keystore ${configuration.nodeKeystore}, generating fresh key!")
+            keyStore.saveNewKeyPair(myLegalName, privateKeyAlias, generateKeyPair())
+        }
+
+        val (cert, keyPair) = keyStore.certificateAndKeyPair(privateKeyAlias)
+
+        if (cert.subject != myLegalName)
+            throw ConfigurationException("The legal name in the config file doesn't match the stored identity keystore: $myLegalName vs ${cert.subject}")
+
+        val certPath = CertificateFactory.getInstance("X509").generateCertPath(keyStore.getCertificateChain(privateKeyAlias).asList())
+        check(cert == certPath.certificates[0].toX509CertHolder()) { "Certificates in key store do not line up!" }
+
+        partyKeys += keyPair
+        return Pair(PartyAndCertificate(certPath), keyPair)
+    }
+
+    private fun obtainServiceParty(serviceId: String, serviceName: X500Name): Party {
         val keyStore = KeyStoreWrapper(configuration.nodeKeystore, configuration.keyStorePassword)
         val privateKeyAlias = "$serviceId-private-key"
         val compositeKeyAlias = "$serviceId-composite-key"
@@ -720,12 +742,9 @@ abstract class AbstractNode(open val configuration: NodeConfiguration,
 
         val (cert, keyPair) = keyStore.certificateAndKeyPair(privateKeyAlias)
 
-        // Get keys from keystore.
-        val loadedServiceName = cert.subject
-        if (loadedServiceName != serviceName)
-            throw ConfigurationException("The legal name in the config file doesn't match the stored identity keystore:$serviceName vs $loadedServiceName")
+        if (cert.subject != serviceName)
+            throw ConfigurationException("The legal name in the config file doesn't match the stored identity keystore: $serviceName vs ${cert.subject}")
 
-        val certPath = CertificateFactory.getInstance("X509").generateCertPath(keyStore.getCertificateChain(privateKeyAlias).toList())
         // Use composite key instead if exists
         // TODO: Use configuration to indicate composite key should be used instead of public key for the identity.
         val publicKey = if (keyStore.containsAlias(compositeKeyAlias)) {
@@ -735,7 +754,7 @@ abstract class AbstractNode(open val configuration: NodeConfiguration,
         }
 
         partyKeys += keyPair
-        return Pair(PartyAndCertificate(loadedServiceName, publicKey, cert, certPath), keyPair)
+        return Party(serviceName, publicKey)
     }
 
     private fun migrateKeysFromFile(keyStore: KeyStoreWrapper, serviceName: X500Name,
@@ -752,13 +771,6 @@ abstract class AbstractNode(open val configuration: NodeConfiguration,
             keyStore.savePublicKey(serviceName, compositeKeyAlias, Crypto.decodePublicKey(compositeKeyFile.readAll()))
         }
         log.info("Finish migrating $privateKeyAlias from file to keystore.")
-    }
-
-    private fun getTestPartyAndCertificate(party: Party, trustRoot: CertificateAndKeyPair): PartyAndCertificate {
-        val certFactory = CertificateFactory.getInstance("X509")
-        val certHolder = X509Utilities.createCertificate(CertificateType.IDENTITY, trustRoot.certificate, trustRoot.keyPair, party.name, party.owningKey)
-        val certPath = certFactory.generateCertPath(listOf(certHolder.cert, trustRoot.certificate.cert))
-        return PartyAndCertificate(party, certHolder, certPath)
     }
 
     protected open fun generateKeyPair() = cryptoGenerateKeyPair()

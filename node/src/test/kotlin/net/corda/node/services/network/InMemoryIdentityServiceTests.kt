@@ -91,7 +91,7 @@ class InMemoryIdentityServiceTests {
             val txKey = Crypto.generateKeyPair(X509Utilities.DEFAULT_TLS_SIGNATURE_SCHEME)
             val service = InMemoryIdentityService(trustRoot = DUMMY_CA.certificate)
             // TODO: Generate certificate with an EdDSA key rather than ECDSA
-            val identity = Party(CertificateAndKeyPair(rootCert, rootKey))
+            val identity = Party(rootCert)
             val txIdentity = AnonymousParty(txKey.public)
 
             assertFailsWith<IdentityService.UnknownAnonymousPartyException> {

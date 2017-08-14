@@ -21,12 +21,12 @@ interface IdentityService {
     /**
      * Verify and then store a well known identity.
      *
-     * @param party a party representing a legal entity.
+     * @param identity a party representing a legal entity.
      * @throws IllegalArgumentException if the certificate path is invalid, or if there is already an existing
      * certificate chain for the anonymous party.
      */
     @Throws(CertificateExpiredException::class, CertificateNotYetValidException::class, InvalidAlgorithmParameterException::class)
-    fun registerIdentity(party: PartyAndCertificate)
+    fun registerIdentity(identity: PartyAndCertificate)
 
     /**
      * Verify and then store an anonymous identity.

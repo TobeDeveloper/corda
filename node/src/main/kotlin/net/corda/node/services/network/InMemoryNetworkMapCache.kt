@@ -2,9 +2,9 @@ package net.corda.node.services.network
 
 import com.google.common.annotations.VisibleForTesting
 import net.corda.core.concurrent.CordaFuture
-import net.corda.core.internal.bufferUntilSubscribed
 import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
+import net.corda.core.internal.bufferUntilSubscribed
 import net.corda.core.internal.concurrent.map
 import net.corda.core.internal.concurrent.openFuture
 import net.corda.core.messaging.DataFeed
@@ -68,7 +68,7 @@ open class InMemoryNetworkMapCache(private val serviceHub: ServiceHub?) : Single
         }
         for ((_, value) in registeredNodes) {
             for (service in value.advertisedServices) {
-                if (service.identity.party == party) {
+                if (service.party == party) {
                     return PartyInfo.Service(service)
                 }
             }
