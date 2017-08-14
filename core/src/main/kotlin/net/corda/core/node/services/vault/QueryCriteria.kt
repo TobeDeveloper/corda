@@ -52,7 +52,7 @@ sealed class QueryCriteria {
     data class VaultQueryCriteria @JvmOverloads constructor (override val status: Vault.StateStatus = Vault.StateStatus.UNCONSUMED,
                                                              val contractStateTypes: Set<Class<out ContractState>>? = null,
                                                              val stateRefs: List<StateRef>? = null,
-                                                             val notaryName: List<AbstractParty>? = null,
+                                                             val notary: List<AbstractParty>? = null,
                                                              val softLockingCondition: SoftLockingCondition? = null,
                                                              val timeCondition: TimeCondition? = null) : CommonQueryCriteria() {
         override fun visit(parser: IQueryCriteriaParser): Collection<Predicate> {
@@ -82,7 +82,7 @@ sealed class QueryCriteria {
     data class FungibleAssetQueryCriteria @JvmOverloads constructor(val participants: List<AbstractParty>? = null,
                                                                     val owner: List<AbstractParty>? = null,
                                                                     val quantity: ColumnPredicate<Long>? = null,
-                                                                    val issuerPartyName: List<AbstractParty>? = null,
+                                                                    val issuer: List<AbstractParty>? = null,
                                                                     val issuerRef: List<OpaqueBytes>? = null,
                                                                     override val status: Vault.StateStatus = Vault.StateStatus.UNCONSUMED) : CommonQueryCriteria() {
        override fun visit(parser: IQueryCriteriaParser): Collection<Predicate> {
