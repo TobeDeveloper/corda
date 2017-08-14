@@ -2,9 +2,9 @@ package net.corda.node.services.messaging
 
 import net.corda.core.concurrent.CordaFuture
 import net.corda.core.crypto.random63BitValue
+import net.corda.core.internal.ThreadBox
 import net.corda.core.internal.concurrent.andForget
 import net.corda.core.internal.concurrent.thenMatch
-import net.corda.core.internal.ThreadBox
 import net.corda.core.messaging.CordaRPCOps
 import net.corda.core.messaging.MessageRecipients
 import net.corda.core.messaging.RPCOps
@@ -570,7 +570,7 @@ class NodeMessagingClient(override val config: NodeConfiguration,
     override fun getAddressOfParty(partyInfo: PartyInfo): MessageRecipients {
         return when (partyInfo) {
             is PartyInfo.Node -> getArtemisPeerAddress(partyInfo.node)
-            is PartyInfo.Service -> ServiceAddress(partyInfo.service.identity.owningKey)
+            is PartyInfo.Service -> ServiceAddress(partyInfo.service.party.owningKey)
         }
     }
 }

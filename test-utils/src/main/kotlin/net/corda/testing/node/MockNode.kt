@@ -7,6 +7,7 @@ import net.corda.core.crypto.CertificateAndKeyPair
 import net.corda.core.crypto.cert
 import net.corda.core.crypto.entropyToKeyPair
 import net.corda.core.crypto.random63BitValue
+import net.corda.core.identity.Party
 import net.corda.core.identity.PartyAndCertificate
 import net.corda.core.internal.concurrent.doneFuture
 import net.corda.core.internal.createDirectories
@@ -193,7 +194,7 @@ class MockNetwork(private val networkSendManuallyPumped: Boolean = false,
                     val override = overrideServices[it.info]
                     if (override != null) {
                         // TODO: Store the key
-                        ServiceEntry(it.info, getTestPartyAndCertificate(it.identity.name, override.public))
+                        ServiceEntry(it.info, Party(it.party.name, override.public))
                     } else {
                         it
                     }

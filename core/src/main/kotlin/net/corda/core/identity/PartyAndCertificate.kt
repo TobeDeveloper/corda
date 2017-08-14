@@ -1,6 +1,6 @@
 package net.corda.core.identity
 
-import net.corda.core.serialization.CordaSerializable
+import net.corda.core.internal.toX509CertHolder
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cert.X509CertificateHolder
 import java.security.PublicKey
@@ -11,30 +11,18 @@ import java.security.cert.CertPath
  * [PartyAndCertificate] instances is based on the party only, as certificate and path are data associated with the party,
  * not part of the identifier themselves.
  */
-@CordaSerializable
-data class PartyAndCertificate(val party: Party,
-                               val certificate: X509CertificateHolder,
-                               val certPath: CertPath) {
-    constructor(name: X500Name, owningKey: PublicKey, certificate: X509CertificateHolder, certPath: CertPath) : this(Party(name, owningKey), certificate, certPath)
-    val name: X500Name
-        get() = party.name
-    val owningKey: PublicKey
-        get() = party.owningKey
+//TODO Is LegalIdentity a better name, or VerifiableIdentity?
+class PartyAndCertificate(val certPath: CertPath) {
+    @Transient val certificate: X509CertificateHolder = certPath.certificates[0].toX509CertHolder()
+    @Transient val party: Party = Party(certificate)
 
-    override fun equals(other: Any?): Boolean {
-        return if (other is PartyAndCertificate)
-            party == other.party
-        else
-            false
-    }
+    val owningKey: PublicKey get() = party.owningKey
+    val name: X500Name get() = party.name
 
+    operator fun component1(): Party = party
+    operator fun component2(): X509CertificateHolder = certificate
+
+    override fun equals(other: Any?): Boolean = other === this || other is PartyAndCertificate && other.party == party
     override fun hashCode(): Int = party.hashCode()
-    /**
-     * Convert this party and certificate into an anomymised identity. This exists primarily for example cases which
-     * want to use well known identities as if they're anonymous identities.
-     */
-    fun toAnonymisedIdentity(): AnonymousPartyAndPath {
-        return AnonymousPartyAndPath(party.owningKey, certPath)
-    }
     override fun toString(): String = party.toString()
 }

@@ -1,11 +1,11 @@
 package net.corda.node.services.identity
 
 import net.corda.core.contracts.PartyAndReference
-import net.corda.core.crypto.Crypto
 import net.corda.core.crypto.cert
 import net.corda.core.crypto.subject
 import net.corda.core.crypto.toStringShort
 import net.corda.core.identity.*
+import net.corda.core.internal.toX509CertHolder
 import net.corda.core.node.services.IdentityService
 import net.corda.core.serialization.SingletonSerializeAsToken
 import net.corda.core.utilities.loggerFor
@@ -15,10 +15,8 @@ import org.bouncycastle.cert.X509CertificateHolder
 import java.security.InvalidAlgorithmParameterException
 import java.security.PublicKey
 import java.security.cert.*
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import javax.annotation.concurrent.ThreadSafe
-import kotlin.collections.LinkedHashSet
 
 /**
  * Simple identity service which caches parties and provides functionality for efficient lookup.
@@ -42,7 +40,7 @@ class InMemoryIdentityService(identities: Iterable<PartyAndCertificate> = emptyS
      * Certificate store for certificate authority and intermediary certificates.
      */
     override val caCertStore: CertStore
-    override val trustRootHolder = X509CertificateHolder(trustRoot.encoded)
+    override val trustRootHolder = trustRoot.toX509CertHolder()
     private val trustAnchor: TrustAnchor = TrustAnchor(trustRoot, null)
     private val keyToParties = ConcurrentHashMap<PublicKey, PartyAndCertificate>()
     private val principalToParties = ConcurrentHashMap<X500Name, PartyAndCertificate>()
@@ -54,23 +52,21 @@ class InMemoryIdentityService(identities: Iterable<PartyAndCertificate> = emptyS
         keyToParties.putAll(identities.associateBy { it.owningKey } )
         principalToParties.putAll(identities.associateBy { it.name })
         certPaths.forEach { (party, path) ->
-            partyToPath.put(party, Pair(path, X509CertificateHolder(path.certificates.first().encoded)))
+            partyToPath[party] = Pair(path, path.certificates[0].toX509CertHolder())
         }
     }
 
     // TODO: Check the certificate validation logic
     @Throws(CertificateExpiredException::class, CertificateNotYetValidException::class, InvalidAlgorithmParameterException::class)
-    override fun registerIdentity(party: PartyAndCertificate) {
-        require(party.certPath.certificates.isNotEmpty()) { "Certificate path must contain at least one certificate" }
+    override fun registerIdentity(identity: PartyAndCertificate) {
         // Validate the chain first, before we do anything clever with it
-        validateCertificatePath(party.party, party.certPath)
+        validateCertificatePath(identity.certPath)
 
-        log.trace { "Registering identity $party" }
-        require(Arrays.equals(party.certificate.subjectPublicKeyInfo.encoded, party.owningKey.encoded)) { "Party certificate must end with party's public key" }
+        log.trace { "Registering identity $identity" }
 
-        partyToPath[party.party] = Pair(party.certPath, party.certificate)
-        keyToParties[party.owningKey] = party
-        principalToParties[party.name] = party
+        partyToPath[identity.party] = Pair(identity.certPath, identity.certificate)
+        keyToParties[identity.owningKey] = identity
+        principalToParties[identity.name] = identity
     }
 
     override fun anonymousFromKey(owningKey: PublicKey): AnonymousPartyAndPath? {
@@ -134,7 +130,7 @@ class InMemoryIdentityService(identities: Iterable<PartyAndCertificate> = emptyS
     @Throws(CertificateExpiredException::class, CertificateNotYetValidException::class, InvalidAlgorithmParameterException::class)
     override fun verifyAndRegisterAnonymousIdentity(anonymousIdentity: AnonymousPartyAndPath, wellKnownIdentity: Party): PartyAndCertificate {
         val fullParty = verifyAnonymousIdentity(anonymousIdentity, wellKnownIdentity)
-        val certificate = X509CertificateHolder(anonymousIdentity.certPath.certificates.first().encoded)
+        val certificate = anonymousIdentity.certPath.certificates[0].toX509CertHolder()
         log.trace { "Registering identity $fullParty" }
 
         partyToPath[anonymousIdentity.party] = Pair(anonymousIdentity.certPath, certificate)
@@ -143,11 +139,11 @@ class InMemoryIdentityService(identities: Iterable<PartyAndCertificate> = emptyS
     }
 
     override fun verifyAnonymousIdentity(anonymousIdentity: AnonymousPartyAndPath, party: Party): PartyAndCertificate {
-        val (anonymousParty, path) = anonymousIdentity
+        val (_, path) = anonymousIdentity
         val fullParty = certificateFromParty(party) ?: throw IllegalArgumentException("Unknown identity ${party.name}")
         require(path.certificates.isNotEmpty()) { "Certificate path must contain at least one certificate" }
         // Validate the chain first, before we do anything clever with it
-        validateCertificatePath(anonymousParty, path)
+        validateCertificatePath(path)
         val subjectCertificate = path.certificates.first()
         require(subjectCertificate is X509Certificate && subjectCertificate.subject == fullParty.name) { "Subject of the transaction certificate must match the well known identity" }
         return fullParty
@@ -156,16 +152,7 @@ class InMemoryIdentityService(identities: Iterable<PartyAndCertificate> = emptyS
     /**
      * Verify that the given certificate path is valid and leads to the owning key of the party.
      */
-    private fun validateCertificatePath(party: AbstractParty, path: CertPath): PKIXCertPathValidatorResult {
-        // Check that the path ends with a certificate for the correct party.
-        val endCertificate = path.certificates.first()
-        // Ensure the key is in the correct format for comparison.
-        // TODO: Replace with a Bouncy Castle cert path so we can avoid Sun internal classes appearing unexpectedly.
-        //       For now we have to deal with this potentially being an [X509Key] which is Sun's equivalent to
-        //       [SubjectPublicKeyInfo] but doesn't compare properly with [PublicKey].
-        val endKey = Crypto.decodePublicKey(endCertificate.publicKey.encoded)
-        require(endKey == party.owningKey) { "Certificate path validation must end at owning key ${party.owningKey.toStringShort()}, found ${endKey.toStringShort()}" }
-
+    private fun validateCertificatePath(path: CertPath): PKIXCertPathValidatorResult {
         val validatorParameters = PKIXParameters(setOf(trustAnchor))
         val validator = CertPathValidator.getInstance("PKIX")
         validatorParameters.isRevocationEnabled = false

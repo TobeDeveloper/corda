@@ -1,20 +1,20 @@
 package net.corda.node
 
 import co.paralleluniverse.fibers.Suspendable
-import net.corda.core.internal.div
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StartableByRPC
+import net.corda.core.internal.div
 import net.corda.core.messaging.startFlow
 import net.corda.core.node.services.ServiceInfo
 import net.corda.core.node.services.ServiceType
 import net.corda.core.utilities.getOrThrow
-import net.corda.testing.ALICE
 import net.corda.node.internal.NodeStartup
 import net.corda.node.services.startFlowPermission
 import net.corda.nodeapi.User
+import net.corda.testing.ALICE
+import net.corda.testing.ProjectStructure.projectRootDir
 import net.corda.testing.driver.ListenProcessDeathException
 import net.corda.testing.driver.NetworkMapStartStrategy
-import net.corda.testing.ProjectStructure.projectRootDir
 import net.corda.testing.driver.driver
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -25,7 +25,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class BootTests {
-
     @Test
     fun `java deserialization is disabled`() {
         driver {
@@ -56,19 +55,20 @@ class BootTests {
 
     @Test
     fun `node quits on failure to register with network map`() {
-        val tooManyAdvertisedServices = (1..100).map { ServiceInfo(ServiceType.regulator.getSubType("$it")) }.toSet()
+        // Make the NMS request too big
+        val tooManyAdvertisedServices = (1..200).map { ServiceInfo(ServiceType.regulator.getSubType("$it")) }.toSet()
         driver(networkMapStartStrategy = NetworkMapStartStrategy.Nominated(ALICE.name)) {
             val future = startNode(ALICE.name, advertisedServices = tooManyAdvertisedServices)
             assertFailsWith(ListenProcessDeathException::class) { future.getOrThrow() }
         }
     }
-}
 
-@StartableByRPC
-class ObjectInputStreamFlow : FlowLogic<Unit>() {
-    @Suspendable
-    override fun call() {
-        val data = ByteArrayOutputStream().apply { ObjectOutputStream(this).use { it.writeObject(object : Serializable {}) } }.toByteArray()
-        ObjectInputStream(data.inputStream()).use { it.readObject() }
+    @StartableByRPC
+    class ObjectInputStreamFlow : FlowLogic<Unit>() {
+        @Suspendable
+        override fun call() {
+            val data = ByteArrayOutputStream().apply { ObjectOutputStream(this).use { it.writeObject(object : Serializable {}) } }.toByteArray()
+            ObjectInputStream(data.inputStream()).use { it.readObject() }
+        }
     }
 }

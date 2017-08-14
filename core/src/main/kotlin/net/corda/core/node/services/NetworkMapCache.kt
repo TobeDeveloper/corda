@@ -89,7 +89,7 @@ interface NetworkMapCache {
 
     /** Look up all nodes advertising the service owned by [publicKey] */
     fun getNodesByAdvertisedServiceIdentityKey(publicKey: PublicKey): List<NodeInfo> {
-        return partyNodes.filter { it.advertisedServices.any { it.identity.owningKey == publicKey } }
+        return partyNodes.filter { it.advertisedServices.any { it.party.owningKey == publicKey } }
     }
 
     /** Returns information about the party, which may be a specific node or a service */
@@ -130,7 +130,7 @@ interface NetworkMapCache {
                 return serviceIdentities.randomOrNull()
             }
         }
-        return null;
+        return null
     }
 
     /** Checks whether a given party is an advertised notary identity */

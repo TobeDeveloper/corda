@@ -6,7 +6,6 @@ import net.corda.core.flows.FlowLogic
 import net.corda.core.node.NodeInfo
 import net.corda.core.node.services.*
 import net.corda.core.serialization.SerializeAsToken
-import net.corda.core.utilities.NonEmptySet
 import net.corda.node.internal.InitiatedFlowFactory
 import net.corda.node.serialization.NodeClock
 import net.corda.node.services.api.*
@@ -63,7 +62,7 @@ open class MockServiceHubInternal(
     override val clock: Clock
         get() = overrideClock ?: throw UnsupportedOperationException()
     override val myInfo: NodeInfo
-        get() = NodeInfo(listOf(MOCK_HOST_AND_PORT), DUMMY_IDENTITY_1, NonEmptySet.of(DUMMY_IDENTITY_1), 1) // Required to get a dummy platformVersion when required for tests.
+        get() = NodeInfo(listOf(MOCK_HOST_AND_PORT), DUMMY_IDENTITY_1, 1) // Required to get a dummy platformVersion when required for tests.
     override val monitoringService: MonitoringService = MonitoringService(MetricRegistry())
     override val rpcFlows: List<Class<out FlowLogic<*>>>
         get() = throw UnsupportedOperationException()
