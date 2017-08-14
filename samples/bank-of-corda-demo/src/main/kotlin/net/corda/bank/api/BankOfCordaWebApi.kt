@@ -58,7 +58,7 @@ class BankOfCordaWebApi(val rpc: CordaRPCOps) {
         // invoke client side of Issuer Flow: IssuanceRequester
         // The line below blocks and waits for the future to resolve.
         return try {
-            rpc.startFlow(::CashIssueFlow, amount, issuerBankParty, issuerBankPartyRef, notaryNode.notaryIdentity).returnValue.getOrThrow()
+            rpc.startFlow(::CashIssueFlow, amount, issuerBankPartyRef, notaryNode.notaryIdentity).returnValue.getOrThrow()
             rpc.startFlow(::CashPaymentFlow, amount, issueToParty, params.anonymous)
                     .returnValue.getOrThrow().stx
             logger.info("Issue request completed successfully: $params")
