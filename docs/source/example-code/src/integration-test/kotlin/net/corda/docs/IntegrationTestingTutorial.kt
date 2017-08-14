@@ -1,14 +1,12 @@
 package net.corda.docs
 
 import net.corda.contracts.asset.Cash
-import net.corda.core.concurrent.CordaFuture
 import net.corda.core.contracts.DOLLARS
 import net.corda.core.internal.concurrent.transpose
 import net.corda.core.messaging.startFlow
 import net.corda.core.messaging.vaultTrackBy
 import net.corda.core.node.services.ServiceInfo
 import net.corda.core.node.services.Vault
-import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.getOrThrow
 import net.corda.flows.CashIssueFlow
@@ -18,13 +16,7 @@ import net.corda.node.services.transactions.ValidatingNotaryService
 import net.corda.nodeapi.User
 import net.corda.testing.*
 import net.corda.testing.driver.driver
-import net.corda.testing.expect
-import net.corda.testing.expectEvents
-import net.corda.testing.parallel
-import net.corda.testing.sequence
 import org.junit.Test
-import java.util.*
-import kotlin.concurrent.thread
 import kotlin.test.assertEquals
 
 class IntegrationTestingTutorial {
@@ -33,7 +25,8 @@ class IntegrationTestingTutorial {
         // START 1
         driver {
             val aliceUser = User("aliceUser", "testPassword1", permissions = setOf(
-                    startFlowPermission<CashIssueFlow>()
+                    startFlowPermission<CashIssueFlow>(),
+                    startFlowPermission<CashPaymentFlow>()
             ))
             val bobUser = User("bobUser", "testPassword2", permissions = setOf(
                     startFlowPermission<CashPaymentFlow>()
