@@ -22,7 +22,7 @@ import java.util.*
  * and immediately transfer it, so impact of this limitation is considered minimal.
  *
  * @param amount the amount of currency to issue.
- * @param issuerBankParty the identity to issue the currency with.
+ * @param issuerBankParty the identity to issue the currency with. This must be an identity of this node.
  * @param issuerBankPartyRef a reference to put on the issued currency.
  * @param notary the notary to set on the output states.
  */
@@ -39,6 +39,9 @@ class CashIssueFlow(val amount: Amount<Currency>,
 
     @Suspendable
     override fun call(): AbstractCashFlow.Result {
+        val issuerCert = serviceHub.identityService.certificateFromParty(issuerBankParty)
+        require (issuerCert in serviceHub.myInfo.legalIdentitiesAndCerts) { "Issuing identity $issuerBankParty must be an identity of this node" }
+
         progressTracker.currentStep = GENERATING_TX
         val builder: TransactionBuilder = TransactionBuilder(notary)
         val issuer = issuerBankParty.ref(issuerBankPartyRef)
