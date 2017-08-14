@@ -35,6 +35,8 @@ UNRELEASED
 * Trader demo now issues cash and commercial paper directly from the bank node, rather than the seller node self-issuing
   commercial paper but labelling it as if issued by the bank.
 
+* Currency-related API in ``net.corda.core.contracts.ContractsDSL`` has moved to ```net.corda.finance.CurrencyUtils`.
+
 Milestone 14
 ------------
 

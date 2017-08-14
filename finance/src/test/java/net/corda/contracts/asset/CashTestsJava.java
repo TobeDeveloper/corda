@@ -6,11 +6,11 @@ import net.corda.core.identity.AnonymousParty;
 import net.corda.core.utilities.OpaqueBytes;
 import org.junit.Test;
 
-import static net.corda.core.contracts.ContractsDSL.DOLLARS;
-import static net.corda.core.contracts.ContractsDSL.issuedBy;
+import static net.corda.finance.CurrencyUtils.DOLLARS;
+import static net.corda.finance.CurrencyUtils.issuedBy;
+import static net.corda.testing.CoreTestUtils.*;
 import static net.corda.testing.TestConstants.getDUMMY_PUBKEY_1;
 import static net.corda.testing.TestConstants.getDUMMY_PUBKEY_2;
-import static net.corda.testing.CoreTestUtils.*;
 
 /**
  * This is an incomplete Java replica of CashTests.kt to show how to use the Java test DSL

@@ -19,6 +19,7 @@ import net.corda.core.utilities.NonEmptySet
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.toHexString
 import net.corda.core.utilities.*
+import net.corda.finance.*
 import net.corda.node.utilities.CordaPersistence
 import net.corda.node.utilities.configureDatabase
 import net.corda.schemas.CashSchemaV1

@@ -4,8 +4,8 @@ import net.corda.contracts.CommercialPaper
 import net.corda.contracts.asset.Cash
 import net.corda.contracts.getCashBalance
 import net.corda.core.contracts.Amount
-import net.corda.core.contracts.DOLLARS
-import net.corda.core.contracts.USD
+import net.corda.finance.DOLLARS
+import net.corda.finance.USD
 import net.corda.core.internal.Emoji
 import net.corda.core.internal.concurrent.transpose
 import net.corda.core.messaging.CordaRPCOps
